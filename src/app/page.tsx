@@ -171,6 +171,11 @@ export default function Home() {
   async function handleSignOut() {
     await fetch("/api/auth/logout", { method: "POST" });
     setUserId(null);
+    setProfile(null);
+    setAiDiagnostico(null);
+    setAiProtocols([]);
+    setAiCardioProtocol(null);
+    setAnalysisDone(false);
     setAppStage("auth");
   }
 
