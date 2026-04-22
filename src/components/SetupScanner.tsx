@@ -39,11 +39,11 @@ export function SetupScanner({
     <div className="relative flex-1 w-full flex flex-col items-center justify-center mt-8 z-10">
       {!isProcessing && !analysisDone && (
         <div className="relative w-full flex flex-col items-center">
-          <div className="absolute -left-2 top-0 xl:left-1/4 glass-panel px-3 py-2 flex items-center gap-2 animate-[bounce_4s_infinite] pointer-events-none z-20">
+          <div className="absolute left-2 top-0 xl:left-1/4 glass-panel px-3 py-2 flex items-center gap-2 animate-[bounce_4s_infinite] pointer-events-none z-20">
             <Activity size={16} className="text-red-400" />
             <span className="text-xs font-bold">120 bpm</span>
           </div>
-          <div className="absolute -right-2 top-10 xl:right-1/4 glass-panel px-3 py-2 flex items-center gap-2 animate-[bounce_5s_infinite] pointer-events-none z-20">
+          <div className="absolute right-2 top-10 xl:right-1/4 glass-panel px-3 py-2 flex items-center gap-2 animate-[bounce_5s_infinite] pointer-events-none z-20">
             <Dumbbell size={16} className="text-neon" />
             <span className="text-xs font-bold">Modo: SETUP</span>
           </div>

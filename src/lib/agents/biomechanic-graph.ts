@@ -14,9 +14,9 @@ export const GraphState = Annotation.Root({
   cardioProtocol: Annotation<any>(),
 });
 
-// Using strict gemini-1.5-pro to support accurate vision processing natively
+// Using gemini-2.5-pro as it's natively supported and required for standard API keys
 const llm = new ChatGoogleGenerativeAI({
-  model: "gemini-1.5-pro",
+  model: "gemini-2.5-pro",
   temperature: 0.1,
   apiKey: process.env.GEMINI_API_KEY || "dummy_for_build",
 });
