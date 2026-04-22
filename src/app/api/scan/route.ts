@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { biomechanicGraph } from "@/lib/agents/biomechanic-graph";
 
 export const maxDuration = 60;
-
+export const runtime = "edge"; // <-- THIS BYPASSES VERCEL'S 10s NODE.JS TIMEOUT
 export async function POST(req: Request) {
   const session = await getSession();
   if (!session.user_id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -32,7 +32,16 @@ export async function POST(req: Request) {
         try {
           const imgReq = await fetch(data.signedUrl);
           const arrayBuffer = await imgReq.arrayBuffer();
-          const base64String = Buffer.from(arrayBuffer).toString("base64");
+          
+          // Edge compatible Base64 conversion (Replace Node's Buffer)
+          let binary = '';
+          const bytes = new Uint8Array(arrayBuffer);
+          const len = bytes.byteLength;
+          for (let i = 0; i < len; i++) {
+              binary += String.fromCharCode(bytes[i]);
+          }
+          const base64String = btoa(binary);
+
           // Extract mime type or fallback to jpeg
           const typeMatch = data.signedUrl.match(/\.([^.?]+)(\?|$)/);
           const ext = typeMatch ? typeMatch[1].toLowerCase() : 'jpeg';
