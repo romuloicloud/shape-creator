@@ -24,11 +24,25 @@ export async function POST(req: Request) {
     // Get Profile Data
     const { data: prof } = await supabase.from("profiles").select("*").eq("id", session.user_id).single();
 
-    // Generate Signed URLs for the Gemini Vision
+    // Transform signed URLs to base64 inline encoded data to prevent Gemini HTTP raw URL crashes
     const imageUrls: any = {};
     for (const key of Object.keys(paths)) {
       const { data } = await supabase.storage.from("user-photos").createSignedUrl(paths[key], 3600);
-      if (data?.signedUrl) imageUrls[key] = data.signedUrl;
+      if (data?.signedUrl) {
+        try {
+          const imgReq = await fetch(data.signedUrl);
+          const arrayBuffer = await imgReq.arrayBuffer();
+          const base64String = Buffer.from(arrayBuffer).toString("base64");
+          // Extract mime type or fallback to jpeg
+          const typeMatch = data.signedUrl.match(/\.([^.?]+)(\?|$)/);
+          const ext = typeMatch ? typeMatch[1].toLowerCase() : 'jpeg';
+          const mimeType = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+          
+          imageUrls[key] = `data:${mimeType};base64,${base64String}`;
+        } catch (e) {
+          console.error("Failed to download image to base64 for key", key, e);
+        }
+      }
     }
 
     // Run the LangGraph Brain

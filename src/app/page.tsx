@@ -83,10 +83,10 @@ export default function Home() {
   useEffect(() => {
     fetch("/api/auth/session")
       .then((res) => res.json())
-      .then((data) => {
+      .then(async (data) => {
         if (data.user?.id) {
           if (data.accessToken && data.refreshToken) {
-            supabase.auth.setSession({ access_token: data.accessToken, refresh_token: data.refreshToken });
+            await supabase.auth.setSession({ access_token: data.accessToken, refresh_token: data.refreshToken });
           }
           setUserId(data.user.id);
           loadUserData(data.user.id);
@@ -146,7 +146,7 @@ export default function Home() {
       return;
     }
     if (data.accessToken && data.refreshToken) {
-      supabase.auth.setSession({ access_token: data.accessToken, refresh_token: data.refreshToken });
+      await supabase.auth.setSession({ access_token: data.accessToken, refresh_token: data.refreshToken });
     }
     
     setUserId(data.user_id);
@@ -203,7 +203,14 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ paths })
       });
-      const result = await res.json();
+      let result;
+      try {
+        result = await res.json();
+      } catch (e) {
+        alert("Ops! Resposta inesperada do servidor (Timeout ou queda). Tente novamente.");
+        setIsProcessing(false);
+        return;
+      }
       if (res.ok) {
         setAiProtocols(result.protocolos);
         setAiDiagnostico(result.diagnostico);
@@ -211,9 +218,9 @@ export default function Home() {
       } else {
         alert("Ops! Detecção falhou: " + (result.error || "Erro na API do Gemini. Verifique sua chave API."));
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert("Erro fatal ao invocar Agente de IA.");
+      alert("Erro fatal de rede: " + (err.message || "Falha de comunicação"));
     }
     
     setIsProcessing(false);
