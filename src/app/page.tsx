@@ -185,7 +185,12 @@ export default function Home() {
       weight_kg: parseFloat(weight),
       goal_weight: parseFloat(goal),
     };
-    await supabase.from("profiles").upsert(prof);
+    const { error } = await supabase.from("profiles").upsert(prof);
+    if (error) {
+      alert("Falha de Banco de Dados: " + error.message + " (Você rodou o código SQL que te passei?)");
+      setOnboardingLoading(false);
+      return;
+    }
     setProfile(prof);
     setMacros(estimateMacros(prof));
     setOnboardingLoading(false);
