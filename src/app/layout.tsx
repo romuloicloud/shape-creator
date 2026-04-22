@@ -15,6 +15,12 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Shape Creator",
   description: "Plataforma de Hipertrofia Biomecânica Híbrida e IA",
+  appleWebApp: {
+    title: "Shape Creator",
+    statusBarStyle: "black-translucent",
+    capable: true,
+  },
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
