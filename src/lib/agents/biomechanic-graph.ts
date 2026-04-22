@@ -14,9 +14,9 @@ export const GraphState = Annotation.Root({
   cardioProtocol: Annotation<any>(),
 });
 
-// Using gemini-flash-latest to stay compatible with the newest API endpoints
+// Using gemini-1.5-pro-latest to support accurate vision processing natively
 const llm = new ChatGoogleGenerativeAI({
-  model: "gemini-flash-latest",
+  model: "gemini-1.5-pro-latest",
   temperature: 0.1,
   apiKey: process.env.GEMINI_API_KEY || "dummy_for_build",
 });
