@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { biomechanicGraph } from "@/lib/agents/biomechanic-graph";
 
 export const maxDuration = 60;
-export const runtime = "edge"; // <-- THIS BYPASSES VERCEL'S 10s NODE.JS TIMEOUT
+
 export async function POST(req: Request) {
   const session = await getSession();
   if (!session.user_id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -26,33 +26,25 @@ export async function POST(req: Request) {
 
     // Transform signed URLs to base64 inline encoded data to prevent Gemini HTTP raw URL crashes
     const imageUrls: any = {};
-    for (const key of Object.keys(paths)) {
+    const downloadPromises = Object.keys(paths).map(async (key) => {
       const { data } = await supabase.storage.from("user-photos").createSignedUrl(paths[key], 3600);
       if (data?.signedUrl) {
         try {
           const imgReq = await fetch(data.signedUrl);
           const arrayBuffer = await imgReq.arrayBuffer();
-          
-          // Edge compatible Base64 conversion (Replace Node's Buffer)
-          let binary = '';
-          const bytes = new Uint8Array(arrayBuffer);
-          const len = bytes.byteLength;
-          for (let i = 0; i < len; i++) {
-              binary += String.fromCharCode(bytes[i]);
-          }
-          const base64String = btoa(binary);
-
-          // Extract mime type or fallback to jpeg
+          const base64String = Buffer.from(arrayBuffer).toString("base64");
           const typeMatch = data.signedUrl.match(/\.([^.?]+)(\?|$)/);
           const ext = typeMatch ? typeMatch[1].toLowerCase() : 'jpeg';
           const mimeType = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
-          
           imageUrls[key] = `data:${mimeType};base64,${base64String}`;
         } catch (e) {
           console.error("Failed to download image to base64 for key", key, e);
         }
       }
-    }
+    });
+    
+    // Baixa as 4 imagens simultaneamente para não estourar os 10s da Vercel!
+    await Promise.all(downloadPromises);
 
     // Run the LangGraph Brain
     const initialState = {
