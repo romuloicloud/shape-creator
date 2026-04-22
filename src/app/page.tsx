@@ -121,17 +121,21 @@ export default function Home() {
       return; 
     }
 
-    // Validação rígida: o laudo precisa existir e ter protocolos preenchidos com sucesso
     let isValidAi = false;
     if (diagRows && diagRows.length > 0) {
       const diag = diagRows[0];
       if (diag.metadata && diag.metadata.protocolos && diag.metadata.protocolos.length > 0) {
-        isValidAi = true;
-        setAiDiagnostico(diag.metadata);
-        setAiProtocols(diag.metadata.protocolos);
-        setAnalysisDone(true);
-        if (diag.metadata.cardioProtocol) {
-          setAiCardioProtocol(diag.metadata.cardioProtocol);
+        // Garantir que a IA NÃO retornou array de exercícios vazio
+        const hasValidExercises = diag.metadata.protocolos.some((p: any) => p.exercises && p.exercises.length > 0);
+        
+        if (hasValidExercises) {
+          isValidAi = true;
+          setAiDiagnostico(diag.metadata);
+          setAiProtocols(diag.metadata.protocolos);
+          setAnalysisDone(true);
+          if (diag.metadata.cardioProtocol) {
+            setAiCardioProtocol(diag.metadata.cardioProtocol);
+          }
         }
       }
     }
@@ -284,6 +288,11 @@ export default function Home() {
 
       const result = await runClientAi(key, profile, blobs);
       
+      const hasValidExercises = result?.protocolos?.some((p: any) => p.exercises && p.exercises.length > 0);
+      if (!hasValidExercises) {
+        throw new Error("A Inteligência Artificial falhou ao preencher seus exercícios biomecânicos. Por favor, analise a foto novamente (Falha de Validação Estrutural).");
+      }
+      
       // SALVA NO BANCO PARA PERSISTÊNCIA ENTRE SESSÕES
       await supabase.from("diagnosticos").insert({
         user_id: userId,
@@ -293,13 +302,13 @@ export default function Home() {
       setAiProtocols(result.protocolos);
       setAiDiagnostico(result.diagnostico);
       if (result.cardioProtocol) setAiCardioProtocol(result.cardioProtocol);
+      setAnalysisDone(true); // Só marca como done se passar da validação
     } catch (err: any) {
       console.error(err);
       alert("Ops! Detecção falhou: " + (err.message || "Erro interno da IA. Verifique sua chave API."));
     }
     
     setIsProcessing(false);
-    setAnalysisDone(true);
   }
 
   function finishSetup() {

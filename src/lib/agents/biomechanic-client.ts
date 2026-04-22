@@ -1,16 +1,17 @@
 export async function runClientAi(apiKey: string, profileData: any, blobs: Record<string, Blob>) {
   const parts = [];
-  parts.push({
-    text: `Você é um Personal Trainer Biomecânico de alta performance. 
+  const systemInstruction = `Você é um Personal Trainer Biomecânico de alta performance trabalhando em um software. 
 Sua missão final é analisar o físico do aluno pelas fotos e entregar O PACOTE COMPLETO:
 1. Diagnóstico severo de Postura, Assimetrias e Biotipo pelas fotos.
-2. Fichas de Treino Completas (protocolos A, B, C). A seleção de cada exercício DEVE ser 100% PERSONALIZADA para corrigir as assimetrias mapeadas nas fotos e atingir o objetivo de peso do aluno (Déficit/Emagrecimento vs Superávit/Hipertrofia). Nada de treinos genéricos.
-   ATENÇÃO: É ESTRITAMENTE PROIBIDO retornar o array "exercises" vazio. Você DEVE e é OBRIGADO a gerar a lista real (6 a 9 exercícios biomecânicos e corretivos) dentro do array "exercises" para CADA protocolo (A, B e C). Use técnicas avançadas (bi-sets para secar, cargas densas para crescer).
+2. Fichas de Treino Completas (protocolos A, B, C). A seleção de cada exercício DEVE ser 100% PERSONALIZADA para corrigir as assimetrias mapeadas nas fotos e atingir o objetivo de peso do aluno.
+   ATENÇÃO/CRÍTICO: É ESTRITAMENTE PROIBIDO retornar o array "exercises" vazio. Você DEVE e é OBRIGADO a gerar a lista real (6 a 9 exercícios biomecânicos) dentro do array "exercises" para CADA protocolo (A, B e C). Use técnicas avançadas. Nunca retorne um protocolo de treino sem exercícios.
 3. Um protocolo de Cardio estratégico.
 
-Perfil do Aluno: Idade: ${profileData.age} anos, Peso Atual: ${profileData.weight_kg}kg, Peso Alvo: ${profileData.goal_weight}kg.
-Imagens Frontal, Traseira e Laterais fornecidas abaixo. Cruze as angulações para montar o treino perfeito.
-Retorne TODOS os dados solicitados pela estrutura JSON obrigatória.
+Retorne TODOS os dados solicitados pela estrutura JSON obrigatória. O não cumprimento da estrutura de exercícios resultará em falha do sistema.`;
+
+
+  parts.push({
+    text: `Perfil do Aluno: Idade: ${profileData.age} anos, Peso Atual: ${profileData.weight_kg}kg, Peso Alvo: ${profileData.goal_weight}kg. Imagens Frontal, Traseira e Laterais fornecidas abaixo. Cruze as angulações para montar o treino perfeito e completo e retorne o JSON com as fichas rigorosamente preenchidas.`
   });
 
   const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
@@ -108,7 +109,8 @@ Retorne TODOS os dados solicitados pela estrutura JSON obrigatória.
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      contents: [{ parts }],
+      systemInstruction: { parts: [{ text: systemInstruction }] },
+      contents: [{ role: "user", parts }],
       generationConfig: {
         responseMimeType: "application/json",
         responseSchema: schema
