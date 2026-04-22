@@ -183,7 +183,7 @@ export default function Home() {
     setIsProcessing(true);
     const ts = Date.now();
     const paths: Record<string, string> = {};
-    const compressImage = async (file: File): Promise<File> => {
+    const compressImage = async (file: File): Promise<Blob> => {
       return new Promise((resolve, reject) => {
         const img = document.createElement("img");
         img.onload = () => {
@@ -195,8 +195,12 @@ export default function Home() {
           const ctx = canvas.getContext("2d");
           ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
           canvas.toBlob((blob) => {
-            if (blob) resolve(new File([blob], file.name, { type: "image/jpeg" }));
-            else reject(new Error("Compression failed"));
+            if (blob) {
+              URL.revokeObjectURL(img.src);
+              resolve(blob);
+            } else {
+              reject(new Error("Compression failed"));
+            }
           }, "image/jpeg", 0.7);
         };
         img.onerror = reject;
@@ -209,9 +213,9 @@ export default function Home() {
         const file = photoFiles[key as keyof typeof photoFiles];
         if (!file) continue;
         
-        const compressedFile = await compressImage(file);
+        const compressedBlob = await compressImage(file);
         const path = `${userId}/${ts}/${key}.jpg`;
-        const { error: uploadError } = await supabase.storage.from("user-photos").upload(path, compressedFile, { contentType: "image/jpeg", upsert: true });
+        const { error: uploadError } = await supabase.storage.from("user-photos").upload(path, compressedBlob, { contentType: "image/jpeg", upsert: true });
         
         if (uploadError) {
            throw new Error("Supabase Upload Error: " + uploadError.message);
