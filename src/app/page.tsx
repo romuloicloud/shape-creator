@@ -113,22 +113,30 @@ export default function Home() {
     // Auto-load AI Protocol if it exists in the database
     const { data: diagRows } = await supabase.from("diagnosticos").select("*").eq("user_id", uid).order("created_at", { ascending: false }).limit(1);
     
-    // Se não tem diagnóstico pronto OU não tem foto, joga pro setup!
-    if (!diagRows || diagRows.length === 0 || !photos) { 
+    // Se não tem foto, joga pro setup!
+    if (!photos) { 
       setAppStage("setup"); 
       return; 
     }
 
-    const diag = diagRows[0];
-    if (diag.metadata) {
-      setAiDiagnostico(diag.metadata);
-      if (diag.metadata.protocolos) {
+    // Validação rígida: o laudo precisa existir e ter protocolos preenchidos com sucesso
+    let isValidAi = false;
+    if (diagRows && diagRows.length > 0) {
+      const diag = diagRows[0];
+      if (diag.metadata && diag.metadata.protocolos && diag.metadata.protocolos.length > 0) {
+        isValidAi = true;
+        setAiDiagnostico(diag.metadata);
         setAiProtocols(diag.metadata.protocolos);
         setAnalysisDone(true);
+        if (diag.metadata.cardioProtocol) {
+          setAiCardioProtocol(diag.metadata.cardioProtocol);
+        }
       }
-      if (diag.metadata.cardioProtocol) {
-        setAiCardioProtocol(diag.metadata.cardioProtocol);
-      }
+    }
+
+    if (!isValidAi) {
+      setAppStage("setup");
+      return;
     }
 
     setAppStage("dashboard");
