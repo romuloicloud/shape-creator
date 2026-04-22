@@ -133,25 +133,39 @@ export default function Home() {
   async function handleLogin(email: string, pass: string, isSignUp: boolean = false) {
     setAuthError(""); setAuthLoading(true);
     const endpoint = isSignUp ? "/api/auth/register" : "/api/auth/login";
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password: pass }),
-    });
+    
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password: pass }),
+      });
 
-    const data = await res.json();
-    setAuthLoading(false);
+      let data;
+      try {
+        data = await res.json();
+      } catch (err) {
+        setAuthError("Erro na resposta do servidor. Tente novamente.");
+        setAuthLoading(false);
+        return;
+      }
+      
+      setAuthLoading(false);
 
-    if (!res.ok) {
+      if (!res.ok) {
       setAuthError(data.error || "Erro no login");
       return;
     }
-    if (data.accessToken && data.refreshToken) {
-      await supabase.auth.setSession({ access_token: data.accessToken, refresh_token: data.refreshToken });
+      if (data.accessToken && data.refreshToken) {
+        await supabase.auth.setSession({ access_token: data.accessToken, refresh_token: data.refreshToken });
+      }
+      
+      setUserId(data.user_id);
+      loadUserData(data.user_id);
+    } catch (globalErr: any) {
+      setAuthLoading(false);
+      setAuthError("Falha na rede. Verifique sua conexão e tente novamente.");
     }
-    
-    setUserId(data.user_id);
-    loadUserData(data.user_id);
   }
   
   async function handleSignOut() {
