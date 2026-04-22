@@ -204,14 +204,24 @@ export default function Home() {
       });
     };
 
-    for (const key of Object.keys(photoFiles)) {
-      const file = photoFiles[key as keyof typeof photoFiles];
-      if (!file) continue;
-      
-      const compressedFile = await compressImage(file);
-      const path = `${userId}/${ts}/${key}.jpg`;
-      await supabase.storage.from("user-photos").upload(path, compressedFile, { contentType: "image/jpeg", upsert: true });
-      paths[key] = path;
+    try {
+      for (const key of Object.keys(photoFiles)) {
+        const file = photoFiles[key as keyof typeof photoFiles];
+        if (!file) continue;
+        
+        const compressedFile = await compressImage(file);
+        const path = `${userId}/${ts}/${key}.jpg`;
+        const { error: uploadError } = await supabase.storage.from("user-photos").upload(path, compressedFile, { contentType: "image/jpeg", upsert: true });
+        
+        if (uploadError) {
+           throw new Error("Supabase Upload Error: " + uploadError.message);
+        }
+        paths[key] = path;
+      }
+    } catch(err: any) {
+      alert("Erro na Compressão/Upload: " + err.message);
+      setIsProcessing(false);
+      return;
     }
 
     await supabase.from("user_photos").insert({
@@ -238,11 +248,11 @@ export default function Home() {
         setAiDiagnostico(result.diagnostico);
         if (result.cardioProtocol) setAiCardioProtocol(result.cardioProtocol);
       } else {
-        alert("Ops! Detecção falhou: " + (result.error || "Erro na API do Gemini. Verifique sua chave API."));
+        alert("Ops! Detecção falhou: " + (result.error || "Erro interno da IA. Verifique sua chave API."));
       }
     } catch (err: any) {
       console.error(err);
-      alert("Erro fatal de rede: " + (err.message || "Falha de comunicação"));
+      alert("Erro fatal de rede (Fetch para a Vercel falhou): " + (err.message || "Falha de comunicação"));
     }
     
     setIsProcessing(false);
