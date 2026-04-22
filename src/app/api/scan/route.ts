@@ -3,6 +3,8 @@ import { getSession } from "@/lib/session";
 import { createClient } from "@supabase/supabase-js";
 import { biomechanicGraph } from "@/lib/agents/biomechanic-graph";
 
+export const maxDuration = 60;
+
 export async function POST(req: Request) {
   const session = await getSession();
   if (!session.user_id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -11,7 +13,13 @@ export async function POST(req: Request) {
     const { paths } = await req.json();
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabase = createClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+    const supabase = createClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      }
+    });
 
     // Get Profile Data
     const { data: prof } = await supabase.from("profiles").select("*").eq("id", session.user_id).single();
@@ -41,13 +49,13 @@ export async function POST(req: Request) {
     const cardioProtocol = finalState.cardioProtocol;
 
     if (diagnostico) {
-      await supabase.from("diagnosticos").insert({
+      await supabase.from("diagnosticos").upsert({
         user_id: session.user_id,
         image_url: imageUrls.frente || "",
         cifose_grau: diagnostico.cifose_grau,
         escoliose_desvio: diagnostico.escoliose_desvio,
         metadata: { ...diagnostico, protocolos, cardioProtocol }
-      });
+      }, { onConflict: 'user_id' });
     }
 
     return NextResponse.json({ ok: true, diagnostico, protocolos, cardioProtocol });
