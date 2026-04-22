@@ -140,12 +140,13 @@ export default function Home() {
       }
     }
 
+    setDiagnosticHistory(diagRows || []);
+
     if (!isValidAi) {
       setAppStage("setup");
       return;
     }
 
-    setDiagnosticHistory(diagRows || []);
     setAppStage("dashboard");
   }
 
