@@ -255,10 +255,12 @@ export default function Home() {
         body: JSON.stringify({ paths })
       });
       let result;
+      let rawText = "";
       try {
-        result = await res.json();
+        rawText = await res.text();
+        result = JSON.parse(rawText);
       } catch (e) {
-        alert("Ops! Resposta inesperada do servidor (Timeout ou queda). Tente novamente.");
+        alert("Vercel falhou ou bloqueou a rota. Resposta bruta: " + rawText.substring(0, 150));
         setIsProcessing(false);
         return;
       }

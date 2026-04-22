@@ -14,9 +14,9 @@ export const GraphState = Annotation.Root({
   cardioProtocol: Annotation<any>(),
 });
 
-// Using gemini-2.5-pro as it's natively supported and required for standard API keys
+// Using gemini-2.5-flash as it responds in 3-5s, avoiding strict Vercel Hobby serverless timeouts (10-15s)
 const llm = new ChatGoogleGenerativeAI({
-  model: "gemini-2.5-pro",
+  model: "gemini-2.5-flash",
   temperature: 0.1,
   apiKey: process.env.GEMINI_API_KEY || "dummy_for_build",
 });
