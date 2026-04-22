@@ -4,6 +4,17 @@ import { createClient } from "@supabase/supabase-js";
 import { biomechanicGraph } from "@/lib/agents/biomechanic-graph";
 
 export const maxDuration = 60;
+export const runtime = "edge";
+
+function arrayBufferToBase64(buffer: ArrayBuffer) {
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  const CHUNK_SIZE = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
+    binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + CHUNK_SIZE)));
+  }
+  return btoa(binary);
+}
 
 export async function POST(req: Request) {
   const session = await getSession();
@@ -32,7 +43,7 @@ export async function POST(req: Request) {
         try {
           const imgReq = await fetch(data.signedUrl);
           const arrayBuffer = await imgReq.arrayBuffer();
-          const base64String = Buffer.from(arrayBuffer).toString("base64");
+          const base64String = arrayBufferToBase64(arrayBuffer);
           const typeMatch = data.signedUrl.match(/\.([^.?]+)(\?|$)/);
           const ext = typeMatch ? typeMatch[1].toLowerCase() : 'jpeg';
           const mimeType = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
