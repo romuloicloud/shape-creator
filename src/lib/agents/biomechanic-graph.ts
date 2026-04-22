@@ -21,46 +21,32 @@ const llm = new ChatGoogleGenerativeAI({
   apiKey: process.env.GEMINI_API_KEY || "dummy_for_build",
 });
 
-async function diagnosticNode(state: typeof GraphState.State) {
-  const content: any[] = [];
-  content.push({ 
-    type: "text", 
-    text: "Você é um clínico biomecânico esportivo de elite de nível Olímpico. Analise estas fotos anatômicas (algumas podem estar ausentes) e formule um diagnóstico biomecânico, inferindo grau aproximado de hipercifose e escoliose. Seja realista e conservador. Você não inventará anomalias se o corpo estiver apto. O resultado DEVE SER ESTRITAMENTE o JSON estruturado." 
-  });
+async function scannerMasterNode(state: typeof GraphState.State) {
+  const content: any[] = [
+    { type: "text", text: `Você é um Personal Trainer Biomecânico de alta performance. 
+Sua missão final é analisar o físico do aluno pelas fotos e entregar O PACOTE COMPLETO:
+1. Diagnóstico de Postura e Biotipo.
+2. Fichas de Treino Completas (protocolos) focadas no perfil (priorizando hipertrofia sem catabolizar). Letras A, B, C etc. (De 6 a 9 exercícios por treino).
+3. Um protocolo de Cardio Específico para o Biotipo para queimar ou preservar massa.
+
+Perfil do Aluno: Idade: ${state.profileData.age} anos, Peso Atual: ${state.profileData.weight}kg, Peso Alvo: ${state.profileData.target}kg.
+Imagens Frontal, Traseira e Laterais fornecidas abaixo.
+Retorne TODOS os dados solicitados pela estrutura JSON obrigatória.` }
+  ];
   
   if (state.imageUrls.frente) content.push({ type: "image_url", image_url: { url: state.imageUrls.frente } });
   if (state.imageUrls.costas) content.push({ type: "image_url", image_url: { url: state.imageUrls.costas } });
   if (state.imageUrls.ladoE) content.push({ type: "image_url", image_url: { url: state.imageUrls.ladoE } });
   if (state.imageUrls.ladoD) content.push({ type: "image_url", image_url: { url: state.imageUrls.ladoD } });
   
-  const diagnosticsParser = llm.withStructuredOutput(z.object({
-    cifose_grau: z.number().describe("Estimativa de 0 a 100 de Cifose Torácica"),
-    escoliose_desvio: z.number().describe("Estimativa de 0 a 100 de Desvio de Escoliose"),
-    biotipo: z.enum(["Ectomorfo", "Mesomorfo", "Endomorfo"]).describe("Inferência visual do biotipo predominante"),
-    tempo_ideal_treino_minutos: z.string().describe("Tempo ideal de treino em minutos justificando com o biotipo. Regra: Estipular tempo teto ou 'tempo mínimo para ganho de massa sem catabolizar' dependendo do biotipo."),
-    detalhes: z.string().describe("Resumo detalhado biomecânico do usuário justificando medidas para evitar catabolismo."),
-  }));
-
-  const res = await diagnosticsParser.invoke([new HumanMessage({ content })]);
-  return { diagnostico: res };
-}
-
-async function prescritorNode(state: typeof GraphState.State) {
-  const content = `Você é um Personal Trainer Biomecânico de alta performance. 
-Perfil do Aluno: Idade: ${state.profileData.age} anos, Peso Atual: ${state.profileData.weight}kg, Peso Alvo: ${state.profileData.target}kg.
-Diagnóstico: Cifose: ${state.diagnostico?.cifose_grau} / Escoliose: ${state.diagnostico?.escoliose_desvio} / Biotipo: ${state.diagnostico?.biotipo}. 
-Tempo Direcionado e Contexto: ${state.diagnostico?.tempo_ideal_treino_minutos} // Secundário: ${state.diagnostico?.detalhes}
-
-Sua missão: 
-1. Crie a rotina/ficha estruturada da SEMANA deste aluno (hipertrofia). Como ele tem um biotipo específico e particularidades, divida isso em letras clássicas (Treino A, Treino B, Treino C, etc). Preencha cada treino com VOLUME REAL DE ACADEMIA: de 6 a 9 exercícios por protocolo.
-2. Crie UM ÚNICO (novo) Protocolo de Cárdio (Endurance / Corrida). Este protocolo DEVE basear-se no Biotipo: 
-   - Ectomorfo deve receber treinos cardio curtos e intensos (ex: HIIT de 10-15 min, ou Fartlek) para evitar catabolismo.
-   - Endomorfo deve receber cardio de maior volume (ex: LISS Zona 2, longo e contínuo) para derreter gordura.
-   As fases do cardio devem mapear exatamente as etapas (ex: Aquecimento, Tiro, Recuperação, Desaquecimento).
-
-Retorne um json contendo \`protocolos\` (Array de WorkoutProtocol) e \`cardioProtocol\` (Objeto de CardioProtocol).`;
-
-  const protocolParser = llm.withStructuredOutput(z.object({
+  const masterParser = llm.withStructuredOutput(z.object({
+    diagnostico: z.object({
+      cifose_grau: z.number().describe("Estimativa de 0 a 100 de Cifose Torácica"),
+      escoliose_desvio: z.number().describe("Estimativa de 0 a 100 de Desvio de Escoliose"),
+      biotipo: z.enum(["Ectomorfo", "Mesomorfo", "Endomorfo"]),
+      tempo_ideal_treino_minutos: z.string().describe("Tempo ideal de treino justificando com o biotipo."),
+      detalhes: z.string().describe("Resumo detalhado biomecânico do usuário."),
+    }),
     protocolos: z.array(z.object({
       id: z.string(),
       label: z.string().describe("ex: TREINO A"),
@@ -74,38 +60,32 @@ Retorne um json contendo \`protocolos\` (Array de WorkoutProtocol) e \`cardioPro
         image: z.string(),
         sets: z.number(),
         reps: z.string(),
-        rest: z.number().describe("Descanso em segundos"),
-        cadence: z.object({ 
-          down: z.number().describe("Fase Excêntrica (seg)"), 
-          pause: z.number().describe("Fase Isométrica (seg)"), 
-          up: z.number().describe("Fase Concêntrica (seg)") 
-        }),
+        rest: z.number(),
+        cadence: z.object({ down: z.number(), pause: z.number(), up: z.number() }),
         muscle: z.string(),
-        posture: z.string().describe("Dica de postura essencial ou adaptação biotipo").optional()
+        posture: z.string().optional()
       })),
     })),
     cardioProtocol: z.object({
-      method: z.string().describe("Metodologia. Ex: 'HIIT Curto', 'Endurance Zona 2'"),
-      totalDuration: z.number().describe("Duração total em minutos"),
-      frequencySemanal: z.number().describe("Frequência ótima por semana"),
-      focus: z.string().describe("Foco atrelado ao biotipo. Ex: 'Queima Acelerada Sem Catabolismo'"),
+      method: z.string().describe("Ex: 'HIIT Curto', 'Endurance Zona 2'"),
+      totalDuration: z.number(),
+      frequencySemanal: z.number(),
+      focus: z.string(),
       phases: z.array(z.object({
-        name: z.string().describe("Nome da fase. Ex: Aquecimento, Tiro, Descanso Ativo, Desaquecimento"),
+        name: z.string(),
         durationMinutes: z.number(),
-        intensityZone: z.string().describe("Zona de Intensidade, Ex: 'Z1', 'Z2', 'Z3', 'Z4' ou 'Z5'"),
-        description: z.string().describe("Instrução verbal simples para o aluno")
+        intensityZone: z.string(),
+        description: z.string()
       }))
-    }).describe("Motor Cardiovascular do aluno baseado no biotipo")
+    })
   }));
 
-  const res = await protocolParser.invoke([new HumanMessage({ content })]);
-  return { protocolos: res.protocolos, cardioProtocol: res.cardioProtocol };
+  const res = await masterParser.invoke([new HumanMessage({ content })]);
+  return { diagnostico: res.diagnostico, protocolos: res.protocolos, cardioProtocol: res.cardioProtocol };
 }
 
 export const biomechanicGraph = new StateGraph(GraphState)
-  .addNode("Diagnosticador", diagnosticNode)
-  .addNode("Prescritor", prescritorNode)
-  .addEdge(START, "Diagnosticador")
-  .addEdge("Diagnosticador", "Prescritor")
-  .addEdge("Prescritor", END)
+  .addNode("ScannerMaster", scannerMasterNode)
+  .addEdge(START, "ScannerMaster")
+  .addEdge("ScannerMaster", END)
   .compile();
