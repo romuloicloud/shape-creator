@@ -7,14 +7,15 @@ export function AuthScreen({
 }: {
   authError: string;
   authLoading: boolean;
-  handleLogin: (email: string, pass: string) => void;
+  handleLogin: (email: string, pass: string, isSignUp?: boolean) => void;
 }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isSignUp, setIsSignUp] = useState(false);
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    handleLogin(email, password);
+    handleLogin(email, password, isSignUp);
   };
 
   return (
@@ -38,10 +39,20 @@ export function AuthScreen({
         {authError && <p className="text-xs text-red-400 text-center">{authError}</p>}
         <button
           type="submit" disabled={authLoading}
-          className="py-4 bg-neon text-black font-extrabold rounded-xl hover:scale-[1.02] active:scale-95 transition-transform disabled:opacity-60"
+          className="py-4 bg-neon text-black font-extrabold rounded-xl hover:scale-[1.02] active:scale-95 transition-transform disabled:opacity-60 mt-2"
         >
-          {authLoading ? "ENTRANDO..." : "ENTRAR"}
+          {authLoading ? "PROCESSANDO..." : isSignUp ? "CRIAR CONTA" : "ENTRAR"}
         </button>
+        
+        <div className="text-center mt-4">
+          <button
+            type="button"
+            onClick={() => setIsSignUp(!isSignUp)}
+            className="text-xs text-gray-400 hover:text-neon transition-colors underline underline-offset-4"
+          >
+            {isSignUp ? "Já tem uma conta? Faça login." : "Não tem uma conta? Cadastre-se."}
+          </button>
+        </div>
       </form>
     </div>
   );

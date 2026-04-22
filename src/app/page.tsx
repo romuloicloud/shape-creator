@@ -130,9 +130,10 @@ export default function Home() {
   }
 
   // Auth Handling
-  async function handleLogin(email: string, pass: string) {
+  async function handleLogin(email: string, pass: string, isSignUp: boolean = false) {
     setAuthError(""); setAuthLoading(true);
-    const res = await fetch("/api/auth/login", {
+    const endpoint = isSignUp ? "/api/auth/register" : "/api/auth/login";
+    const res = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password: pass }),
