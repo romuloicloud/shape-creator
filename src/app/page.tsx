@@ -12,6 +12,7 @@ import { AuthScreen } from "@/components/AuthScreen";
 import { OnboardingScreen } from "@/components/OnboardingScreen";
 import { SetupScanner } from "@/components/SetupScanner";
 import { Dashboard } from "@/components/Dashboard";
+import { runClientAi } from "@/lib/agents/biomechanic-client";
 import { WorkoutPlayer } from "@/components/WorkoutPlayer";
 import { CardioDashboard } from "@/components/CardioDashboard";
 import { CardioPlayer } from "@/components/CardioPlayer";
@@ -233,12 +234,14 @@ export default function Home() {
       });
     };
 
+    const blobs: Record<string, Blob> = {};
     try {
       for (const key of Object.keys(photoFiles)) {
         const file = photoFiles[key as keyof typeof photoFiles];
         if (!file) continue;
         
         const compressedBlob = await compressImage(file);
+        blobs[key] = compressedBlob;
         const path = `${userId}/${ts}/${key}.jpg`;
         const { error: uploadError } = await supabase.storage.from("user-photos").upload(path, compressedBlob, { contentType: "image/jpeg", upsert: true });
         
@@ -259,31 +262,18 @@ export default function Home() {
     
     // Disparo para o Agente de IA (BFF)
     try {
-      const res = await fetch("/api/scan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paths })
-      });
-      let result;
-      let rawText = "";
-      try {
-        rawText = await res.text();
-        result = JSON.parse(rawText);
-      } catch (e) {
-        alert("Vercel falhou ou bloqueou a rota. Resposta bruta: " + rawText.substring(0, 150));
-        setIsProcessing(false);
-        return;
-      }
-      if (res.ok) {
-        setAiProtocols(result.protocolos);
-        setAiDiagnostico(result.diagnostico);
-        if (result.cardioProtocol) setAiCardioProtocol(result.cardioProtocol);
-      } else {
-        alert("Ops! Detecção falhou: " + (result.error || "Erro interno da IA. Verifique sua chave API."));
-      }
+      const keyRes = await fetch("/api/ai-config");
+      const { key } = await keyRes.json();
+      if (!key) throw new Error("Chave Gemini não encontrada no servidor.");
+
+      const result = await runClientAi(key, profile, blobs);
+      
+      setAiProtocols(result.protocolos);
+      setAiDiagnostico(result.diagnostico);
+      if (result.cardioProtocol) setAiCardioProtocol(result.cardioProtocol);
     } catch (err: any) {
       console.error(err);
-      alert("Erro fatal de rede (Fetch para a Vercel falhou): " + (err.message || "Falha de comunicação"));
+      alert("Ops! Detecção falhou: " + (err.message || "Erro interno da IA. Verifique sua chave API."));
     }
     
     setIsProcessing(false);
