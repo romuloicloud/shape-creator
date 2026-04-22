@@ -105,25 +105,29 @@ export default function Home() {
     setProfile(prof);
 
     const { data: photos } = await supabase.from("user_photos").select("*").eq("user_id", uid).order("created_at", { ascending: false }).limit(1).single();
-    if (!photos) { setAppStage("setup"); return; }
-
+    
     const today = new Date().toISOString().split("T")[0];
     const { data: m } = await supabase.from("daily_macros").select("*").eq("user_id", uid).eq("date", today).single();
     setMacros(m ?? estimateMacros(prof));
     
     // Auto-load AI Protocol if it exists in the database
     const { data: diagRows } = await supabase.from("diagnosticos").select("*").eq("user_id", uid).order("created_at", { ascending: false }).limit(1);
-    if (diagRows && diagRows.length > 0) {
-      const diag = diagRows[0];
-      if (diag.metadata) {
-        setAiDiagnostico(diag.metadata);
-        if (diag.metadata.protocolos) {
-          setAiProtocols(diag.metadata.protocolos);
-          setAnalysisDone(true);
-        }
-        if (diag.metadata.cardioProtocol) {
-          setAiCardioProtocol(diag.metadata.cardioProtocol);
-        }
+    
+    // Se não tem diagnóstico pronto OU não tem foto, joga pro setup!
+    if (!diagRows || diagRows.length === 0 || !photos) { 
+      setAppStage("setup"); 
+      return; 
+    }
+
+    const diag = diagRows[0];
+    if (diag.metadata) {
+      setAiDiagnostico(diag.metadata);
+      if (diag.metadata.protocolos) {
+        setAiProtocols(diag.metadata.protocolos);
+        setAnalysisDone(true);
+      }
+      if (diag.metadata.cardioProtocol) {
+        setAiCardioProtocol(diag.metadata.cardioProtocol);
       }
     }
 
