@@ -4,7 +4,7 @@ export async function runClientAi(apiKey: string, profileData: any, blobs: Recor
     text: `Você é um Personal Trainer Biomecânico de alta performance. 
 Sua missão final é analisar o físico do aluno pelas fotos e entregar O PACOTE COMPLETO:
 1. Diagnóstico de Postura e Biotipo.
-2. Fichas de Treino Completas (protocolos) focadas no perfil (priorizando hipertrofia sem catabolizar). Letras A, B, C etc. (De 6 a 9 exercícios por treino).
+2. Fichas de Treino Completas (protocolos) focadas no perfil (priorizando hipertrofia sem catabolizar). Letras A, B, C etc. (De 6 a 9 exercícios OBJETIVOS por treino). ATENÇÃO: É ESTAritamente PROIBIDO retornar o array "exercises" vazio. Você DEVE gerar a lista completa de exercícios para cada protocolo.
 3. Um protocolo de Cardio Específico para o Biotipo para queimar ou preservar massa.
 
 Perfil do Aluno: Idade: ${profileData.age} anos, Peso Atual: ${profileData.weight}kg, Peso Alvo: ${profileData.target}kg.
@@ -103,7 +103,7 @@ Retorne TODOS os dados solicitados pela estrutura JSON obrigatória.`
     }
   };
 
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`, {
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

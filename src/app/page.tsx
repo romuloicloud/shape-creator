@@ -272,6 +272,12 @@ export default function Home() {
 
       const result = await runClientAi(key, profile, blobs);
       
+      // SALVA NO BANCO PARA PERSISTÊNCIA ENTRE SESSÕES
+      await supabase.from("diagnosticos").insert({
+        user_id: userId,
+        metadata: result
+      });
+
       setAiProtocols(result.protocolos);
       setAiDiagnostico(result.diagnostico);
       if (result.cardioProtocol) setAiCardioProtocol(result.cardioProtocol);
