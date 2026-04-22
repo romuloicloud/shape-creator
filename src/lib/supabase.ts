@@ -9,6 +9,7 @@ export const supabase = createClient(url, key);
 
 export interface Profile {
   id: string;
+  full_name?: string;
   age: number;
   height_cm: number;
   weight_kg: number;

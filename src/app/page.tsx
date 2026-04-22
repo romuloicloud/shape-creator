@@ -16,8 +16,9 @@ import { runClientAi } from "@/lib/agents/biomechanic-client";
 import { WorkoutPlayer } from "@/components/WorkoutPlayer";
 import { CardioDashboard } from "@/components/CardioDashboard";
 import { CardioPlayer } from "@/components/CardioPlayer";
+import { ProfileScreen } from "@/components/ProfileScreen";
 
-type AppStage = "loading" | "auth" | "onboarding" | "setup" | "dashboard" | "cardio";
+type AppStage = "loading" | "auth" | "onboarding" | "setup" | "dashboard" | "cardio" | "profile";
 
 export default function Home() {
   const [appStage, setAppStage] = useState<AppStage>("loading");
@@ -35,6 +36,7 @@ export default function Home() {
   const [aiProtocols, setAiProtocols] = useState<WorkoutProtocol[] | null>(null);
   const [aiCardioProtocol, setAiCardioProtocol] = useState<CardioProtocol | null>(null);
   const [aiDiagnostico, setAiDiagnostico] = useState<any>(null);
+  const [diagnosticHistory, setDiagnosticHistory] = useState<any[]>([]);
   
   const [activeWorkout, setActiveWorkout] = useState<WorkoutProtocol | null>(null);
   const [currentExerciseIdx, setCurrentExerciseIdx] = useState(0);
@@ -111,7 +113,7 @@ export default function Home() {
     setMacros(m ?? estimateMacros(prof));
     
     // Auto-load AI Protocol if it exists in the database
-    const { data: diagRows } = await supabase.from("diagnosticos").select("*").eq("user_id", uid).order("created_at", { ascending: false }).limit(1);
+    const { data: diagRows } = await supabase.from("diagnosticos").select("*").eq("user_id", uid).order("created_at", { ascending: false });
     
     // Se não tem foto, joga pro setup!
     if (!photos) { 
@@ -139,6 +141,7 @@ export default function Home() {
       return;
     }
 
+    setDiagnosticHistory(diagRows || []);
     setAppStage("dashboard");
   }
 
@@ -193,11 +196,12 @@ export default function Home() {
   }
 
   // Onboarding
-  async function submitOnboarding(age: string, height: string, weight: string, goal: string) {
+  async function submitOnboarding(name: string, age: string, height: string, weight: string, goal: string) {
     if (!userId) return;
     setOnboardingLoading(true);
     const prof: Profile = {
       id: userId,
+      full_name: name,
       age: parseInt(age),
       height_cm: parseFloat(height),
       weight_kg: parseFloat(weight),
@@ -411,7 +415,7 @@ export default function Home() {
           <div>
             <p className="text-sm text-gray-400 font-medium tracking-wider">BEM-VINDO DE VOLTA,</p>
             <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-              COMANDANTE <span className="animate-pulse">✋</span>
+              {profile?.full_name ? profile.full_name.split(' ')[0].toUpperCase() : "COMANDANTE"} <span className="animate-pulse">✋</span>
             </h1>
           </div>
           <div className="flex items-center gap-2">
@@ -483,9 +487,13 @@ export default function Home() {
         />
       )}
 
+      {appStage === "profile" && (
+        <ProfileScreen profile={profile} history={diagnosticHistory} />
+      )}
+
       {!activeWorkout && !isCardioPlayerOpen && (
         <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm glass-panel p-2 flex justify-between items-center rounded-2xl z-50">
-          <button className="p-3 rounded-xl hover:bg-white/10 text-gray-400 transition-colors"><User size={24} /></button>
+          <button onClick={() => setAppStage("profile")} className={`p-3 rounded-xl transition-colors ${appStage === "profile" ? "bg-white/10 text-white" : "text-gray-400 hover:text-white"}`}><User size={24} /></button>
           <button onClick={() => setAppStage("dashboard")} className={`p-3 rounded-xl transition-colors ${appStage === "dashboard" ? "bg-white/10 text-white" : "text-gray-400"}`}><Dumbbell size={24} /></button>
           <button onClick={() => setAppStage("setup")} className="p-3 rounded-xl text-gray-400 hover:text-white transition-colors"><Camera size={24} /></button>
           <button onClick={() => setAppStage("cardio")} className={`p-3 rounded-xl transition-colors ${appStage === "cardio" ? "bg-white/10 text-white" : "text-gray-400 hover:text-white"}`}><Activity size={24} /></button>

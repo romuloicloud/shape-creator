@@ -6,8 +6,9 @@ export function OnboardingScreen({
   submitOnboarding,
 }: {
   onboardingLoading: boolean;
-  submitOnboarding: (age: string, height: string, weight: string, goal: string) => void;
+  submitOnboarding: (name: string, age: string, height: string, weight: string, goal: string) => void;
 }) {
+  const [fName, setFName] = useState("");
   const [fAge, setFAge] = useState("");
   const [fHeight, setFHeight] = useState("");
   const [fWeight, setFWeight] = useState("");
@@ -15,7 +16,7 @@ export function OnboardingScreen({
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    submitOnboarding(fAge, fHeight, fWeight, fGoal);
+    submitOnboarding(fName, fAge, fHeight, fWeight, fGoal);
   };
 
   return (
@@ -29,6 +30,7 @@ export function OnboardingScreen({
         </div>
 
         {[
+          { label: "NOME (CÓDIGO DE GUERRA)", placeholder: "ex: Rômulo", value: fName, setter: setFName, type: "text", unit: "" },
           { label: "IDADE", placeholder: "ex: 32", value: fAge, setter: setFAge, type: "number", unit: "anos" },
           { label: "ALTURA", placeholder: "ex: 178", value: fHeight, setter: setFHeight, type: "number", unit: "cm" },
           { label: "PESO ATUAL", placeholder: "ex: 82.5", value: fWeight, setter: setFWeight, type: "number", unit: "kg" },
