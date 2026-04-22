@@ -183,12 +183,34 @@ export default function Home() {
     setIsProcessing(true);
     const ts = Date.now();
     const paths: Record<string, string> = {};
+    const compressImage = async (file: File): Promise<File> => {
+      return new Promise((resolve, reject) => {
+        const img = document.createElement("img");
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const MAX_WIDTH = 1000;
+          const scale = Math.min(MAX_WIDTH / img.width, 1);
+          canvas.width = img.width * scale;
+          canvas.height = img.height * scale;
+          const ctx = canvas.getContext("2d");
+          ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob((blob) => {
+            if (blob) resolve(new File([blob], file.name, { type: "image/jpeg" }));
+            else reject(new Error("Compression failed"));
+          }, "image/jpeg", 0.7);
+        };
+        img.onerror = reject;
+        img.src = URL.createObjectURL(file);
+      });
+    };
 
     for (const key of Object.keys(photoFiles)) {
       const file = photoFiles[key as keyof typeof photoFiles];
       if (!file) continue;
+      
+      const compressedFile = await compressImage(file);
       const path = `${userId}/${ts}/${key}.jpg`;
-      await supabase.storage.from("user-photos").upload(path, file, { contentType: file.type || "image/jpeg", upsert: true });
+      await supabase.storage.from("user-photos").upload(path, compressedFile, { contentType: "image/jpeg", upsert: true });
       paths[key] = path;
     }
 
